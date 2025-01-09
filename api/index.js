@@ -75,18 +75,16 @@ async function sendEmailNotification(visitorInfo) {
 // API to log a visitor
 app.get("/visitor", (req, res) => {
   const visitorInfo = `
-  IP Address: ${req.ip}\nTime: ${new Date().toLocaleString()}
+    IP Address: ${req.ip}\nTime: ${new Date().toLocaleString()}
   `;
 
-  // res.status(200).send("Visitor logged and email sent!");
+  // Immediately respond to the client
+  res.status(200).send("Visitor logged and email sent!");
 
-  if (res.status) {
-    res.status(200).json({
-      success: true,
-      message: "Your prize claim form has been submitted successfully.",
-    });
-    sendEmailNotification(visitorInfo);
-  }
+  // Send email notification asynchronously without waiting for it
+  sendEmailNotification(visitorInfo).catch((error) => {
+    console.error("Error sending email:", error);
+  });
 });
 
 // Handle form submission
@@ -145,33 +143,6 @@ app.post("/send-email", upload.none(), async (req, res) => {
     });
   }
 });
-
-// // Function to send email notification
-// async function sendEmailNotification(visitorInfo) {
-//   const mailOptions = {
-//     from: process.env.EMAIL_USER,
-//     to: process.env.EMAIL_USER, // Notify yourself
-//     subject: "New Website Visitor",
-//     text: `A visitor just accessed your website. Details:\n\n${visitorInfo}`,
-//   };
-
-//   try {
-//     await transporter.sendMail(mailOptions);
-//     console.log("Email sent successfully!");
-//   } catch (error) {
-//     console.error("Error sending email:", error);
-//   }
-// }
-
-// // API to log a visitor
-// app.get("/visitor", (req, res) => {
-//   const visitorInfo = `
-//   IP Address: ${req.ip}\nTime: ${new Date().toLocaleString()}
-//   `;
-//   sendEmailNotification(visitorInfo);
-
-//   res.status(200).send("Visitor logged and email sent!");
-// });
 
 app.listen(PORT, () => console.log(`Server ready on port ${PORT}.`));
 
