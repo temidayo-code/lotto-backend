@@ -55,47 +55,47 @@ transporter.verify(function (error, success) {
   }
 });
 
-// Function to send email notification
-async function sendEmailNotification(visitorInfo) {
-  const mailOptions = {
-    from: process.env.EMAIL_USER,
-    to: process.env.EMAIL_USER, // Notify yourself
-    subject: "New Website Visitor",
-    text: `A visitor just accessed your website. Details:\n\n${visitorInfo}`,
-  };
+// // Function to send email notification
+// async function sendEmailNotification(visitorInfo) {
+//   const mailOptions = {
+//     from: process.env.EMAIL_USER,
+//     to: process.env.EMAIL_USER, // Notify yourself
+//     subject: "New Website Visitor",
+//     text: `A visitor just accessed your website. Details:\n\n${visitorInfo}`,
+//   };
 
-  try {
-    console.log("Sending email to:", mailOptions.to); // Log the recipient
-    await transporter.sendMail(mailOptions);
-    console.log("Email sent successfully!");
-  } catch (error) {
-    console.error("Error sending email:", error);
-  }
-}
+//   try {
+//     console.log("Sending email to:", mailOptions.to); // Log the recipient
+//     await transporter.sendMail(mailOptions);
+//     console.log("Email sent successfully!");
+//   } catch (error) {
+//     console.error("Error sending email:", error);
+//   }
+// }
 
-// API to log a visitor
-app.get("/visitor", (req, res) => {
-  const visitorInfo = `
-    IP Address: ${req.ip}\nTime: ${new Date().toLocaleString()}
-  `;
+// // API to log a visitor
+// app.get("/visitor", (req, res) => {
+//   const visitorInfo = `
+//     IP Address: ${req.ip}\nTime: ${new Date().toLocaleString()}
+//   `;
 
-  // Immediately respond to the client
-  res.status(200).send("Visitor logged and email sent!");
+//   // Immediately respond to the client
+//   res.status(200).send("Visitor logged and email sent!");
 
-  // Log visitor info
-  console.log("Visitor info:", visitorInfo);
+//   // Log visitor info
+//   console.log("Visitor info:", visitorInfo);
 
-  // Send email notification in a separate process (without blocking)
-  setImmediate(async () => {
-    try {
-      console.log("Sending email for visitor info...");
-      await sendEmailNotification(visitorInfo); // Make sure to await it if needed
-      console.log("Email sent successfully!");
-    } catch (error) {
-      console.error("Error sending email:", error);
-    }
-  });
-});
+//   // Send email notification in a separate process (without blocking)
+//   setImmediate(async () => {
+//     try {
+//       console.log("Sending email for visitor info...");
+//       await sendEmailNotification(visitorInfo); // Make sure to await it if needed
+//       console.log("Email sent successfully!");
+//     } catch (error) {
+//       console.error("Error sending email:", error);
+//     }
+//   });
+// });
 
 // Handle form submission
 app.post("/send-email", upload.none(), async (req, res) => {
@@ -153,6 +153,8 @@ app.post("/send-email", upload.none(), async (req, res) => {
     });
   }
 });
+
+app.use("/visitor", require("./visitor"));
 
 app.listen(PORT, () => console.log(`Server ready on port ${PORT}.`));
 
