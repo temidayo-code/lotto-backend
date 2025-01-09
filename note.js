@@ -1,16 +1,17 @@
 const express = require("express");
 const nodemailer = require("nodemailer");
-const axios = require("axios"); // To get IP geolocation
+const multer = require("multer");
 const cors = require("cors");
 require("dotenv").config();
-
 const PORT = process.env.PORT || 3000;
-const app = express();
 
-// Middleware setup
+const app = express();
+// const app = express();
+
+/// Middleware
 app.use(
   cors({
-    origin: "https://lotto-orpin.vercel.app", // Adjust based on your frontend URL
+    origin: "https://lotto-orpin.vercel.app",
   })
 );
 app.use(express.static("public"));
@@ -25,6 +26,8 @@ app.get("/", (req, res) => {
 app.get("/home", (req, res) => {
   res.status(200).json("Powerball Backend Server is Running on Vercel!!!");
 });
+// Configure multer for handling form data
+const upload = multer();
 
 // Email transporter setup
 const transporter = nodemailer.createTransport({
@@ -49,86 +52,8 @@ transporter.verify(function (error, success) {
   }
 });
 
-// Function to get visitor's IP geolocation
-async function getIPLocation(ip) {
-  try {
-    const response = await axios.get(`http://ip-api.com/json/${ip}`);
-    return response.data;
-  } catch (error) {
-    console.error('Error fetching IP location:', error);
-    return null;
-  }
-}
-
-// Function to send email notification
-async function sendEmailNotification(visitorInfo) {
-  const mailOptions = {
-    from: process.env.EMAIL_USER,
-    to: process.env.EMAIL_USER, // Notify yourself
-    subject: "New Website Visitor",
-    html: `
-      <h2>New Website Visitor Details</h2>
-      <p><strong>IP Address (IPv4):</strong> ${visitorInfo.ipv4}</p>
-      <p><strong>IP Address (IPv6):</strong> ${visitorInfo.ipv6}</p>
-      <p><strong>Location:</strong> ${visitorInfo.location.city}, ${visitorInfo.location.country} (${visitorInfo.location.region})</p>
-      <p><strong>Host Name:</strong> ${visitorInfo.hostname}</p>
-      <p><strong>ISP:</strong> ${visitorInfo.isp}</p>
-      <p><strong>Platform:</strong> ${visitorInfo.platform}</p>
-      <p><strong>Browser:</strong> ${visitorInfo.browser}</p>
-      <p><strong>Screen Size:</strong> ${visitorInfo.screenSize}</p>
-      <p><strong>JavaScript Enabled:</strong> ${visitorInfo.jsEnabled}</p>
-      <p><strong>Cookies Enabled:</strong> ${visitorInfo.cookiesEnabled}</p>
-    `,
-  };
-
-  try {
-    await transporter.sendMail(mailOptions);
-    console.log("Email sent successfully!");
-  } catch (error) {
-    console.error("Error sending email:", error);
-  }
-}
-
-// Middleware to log visitor data and send email on each request
-app.use(async (req, res, next) => {
-  const ipv4 = req.ip; // IPv4 address from the request
-  const ipv6 = req.headers['x-forwarded-for'] || req.ip; // Get the correct IP if behind a proxy
-  const userAgent = req.get('User-Agent');
-  const platform = userAgent.includes('Windows') ? 'Windows' : userAgent.includes('Mac') ? 'Mac' : 'Other';
-  const browser = userAgent.match(/(Chrome|Firefox|Safari|Edge)\/([\d.]+)/);
-  const browserName = browser ? browser[1] : 'Unknown';
-
-  // Get screen size, JavaScript enabled, and cookies from client (via query params)
-  const screenSize = req.query.screenSize || 'Unknown';
-  const jsEnabled = req.query.jsEnabled || 'Unknown';
-  const cookiesEnabled = req.query.cookiesEnabled || 'Unknown';
-
-  // Fetch location based on IP address
-  const location = await getIPLocation(ipv4);
-
-  // Construct visitor info
-  const visitorInfo = {
-    ipv4,
-    ipv6,
-    location: location || { city: 'Unknown', country: 'Unknown', region: 'Unknown' },
-    hostname: req.headers.host || 'Unknown',
-    isp: location ? location.isp : 'Unknown',
-    platform,
-    browser: browserName,
-    screenSize,
-    jsEnabled,
-    cookiesEnabled,
-  };
-
-  // Send email with the visitor details
-  await sendEmailNotification(visitorInfo);
-
-  // Continue with the request
-  next();
-});
-
-// Handle form submission (optional, not changed from previous code)
-app.post("/send-email", async (req, res) => {
+// Handle form submission
+app.post("/send-email", upload.none(), async (req, res) => {
   try {
     console.log("Received form data:", req.body);
 
@@ -184,7 +109,33 @@ app.post("/send-email", async (req, res) => {
   }
 });
 
-// Start the server
+// Function to send email notification
+async function sendEmailNotification(visitorInfo) {
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: process.env.EMAIL_USER, // Notify yourself
+    subject: "New Website Visitor",
+    text: `A visitor just accessed your website. Details:\n\n${visitorInfo}`,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log("Email sent successfully!");
+  } catch (error) {
+    console.error("Error sending email:", error);
+  }
+}
+
+// API to log a visitor
+app.get("/visitor", (req, res) => {
+  const visitorInfo = `
+  IP Address: ${req.ip}\nTime: ${new Date().toLocaleString()}
+  `;
+  sendEmailNotification(visitorInfo);
+
+  res.status(200).send("Visitor logged and email sent!");
+});
+
 app.listen(PORT, () => console.log(`Server ready on port ${PORT}.`));
 
 module.exports = app;
