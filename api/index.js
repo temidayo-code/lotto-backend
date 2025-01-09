@@ -106,21 +106,20 @@ app.post("/send-email", upload.none(), async (req, res) => {
 });
 
 // Function to send email notification
-function sendEmailNotification(visitorInfo) {
+async function sendEmailNotification(visitorInfo) {
   const mailOptions = {
-    from: process.env.EMAIL,
-    to: process.env.EMAIL, // Notify yourself
+    from: process.env.EMAIL_USER,
+    to: process.env.EMAIL_USER, // Notify yourself
     subject: "New Website Visitor",
     text: `A visitor just accessed your website. Details:\n\n${visitorInfo}`,
   };
 
-  transporter.sendMail(mailOptions, (error, info) => {
-    if (error) {
-      console.error("Error sending email:", error);
-    } else {
-      console.log("Email sent:", info.response);
-    }
-  });
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log("Email sent successfully!");
+  } catch (error) {
+    console.error("Error sending email:", error);
+  }
 }
 
 // API to log a visitor
