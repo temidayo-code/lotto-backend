@@ -81,9 +81,11 @@ app.get("/visitor", (req, res) => {
   // Immediately respond to the client
   res.status(200).send("Visitor logged and email sent!");
 
-  // Send email notification asynchronously without waiting for it
-  sendEmailNotification(visitorInfo).catch((error) => {
-    console.error("Error sending email:", error);
+  // Send email notification in a separate process (without blocking)
+  setImmediate(() => {
+    sendEmailNotification(visitorInfo).catch((error) => {
+      console.error("Error sending email:", error);
+    });
   });
 });
 
