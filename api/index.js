@@ -14,11 +14,11 @@ const emailRouter = require("./send-email");
 const visitorRouter = require("./visitor");
 
 // Use the routes
-app.use("/api/send-email", emailRouter);
-app.use("/api/visitor", visitorRouter);
+app.use("/send-email", emailRouter);
+app.use("/visitor", visitorRouter);
 
 // Health check route
-app.get("/api/health", (req, res) => {
+app.get("/health", (req, res) => {
   res.status(200).json({ status: "OK" });
 });
 
