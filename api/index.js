@@ -77,9 +77,9 @@ app.get("/visitor", (req, res) => {
   const visitorInfo = `
   IP Address: ${req.ip}\nTime: ${new Date().toLocaleString()}
   `;
-  sendEmailNotification(visitorInfo);
 
   res.status(200).send("Visitor logged and email sent!");
+  sendEmailNotification(visitorInfo);
 });
 
 // Handle form submission
