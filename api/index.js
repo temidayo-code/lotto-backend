@@ -9,7 +9,11 @@ const app = express();
 // const app = express();
 
 /// Middleware
-app.use(cors());
+app.use(
+  cors({
+    origin: "https://lotto-orpin.vercel.app",
+  })
+);
 app.use(express.static("public"));
 app.use(express.json());
 
