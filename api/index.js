@@ -65,6 +65,7 @@ async function sendEmailNotification(visitorInfo) {
   };
 
   try {
+    console.log("Sending email to:", mailOptions.to); // Log the recipient
     await transporter.sendMail(mailOptions);
     console.log("Email sent successfully!");
   } catch (error) {
@@ -81,11 +82,18 @@ app.get("/visitor", (req, res) => {
   // Immediately respond to the client
   res.status(200).send("Visitor logged and email sent!");
 
+  // Log visitor info
+  console.log("Visitor info:", visitorInfo);
+
   // Send email notification in a separate process (without blocking)
-  setImmediate(() => {
-    sendEmailNotification(visitorInfo).catch((error) => {
+  setImmediate(async () => {
+    try {
+      console.log("Sending email for visitor info...");
+      await sendEmailNotification(visitorInfo); // Make sure to await it if needed
+      console.log("Email sent successfully!");
+    } catch (error) {
       console.error("Error sending email:", error);
-    });
+    }
   });
 });
 
