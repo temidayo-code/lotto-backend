@@ -55,38 +55,13 @@ transporter.verify(function (error, success) {
   }
 });
 
-// API to log a visitor
-app.get("/visitor", async (req, res) => {
-  // const visitorInfo = `
-  // IP Address: ${req.ip}\nTime: ${new Date().toLocaleString()}
-  // `;
-
-  const visitorInfo = await collectVisitorInfo(req);
-
-  await sendEmailNotification(visitorInfo);
-
-  res.status(200).send("Visitor logged and email sent!");
-});
-
 // Function to send email notification
 async function sendEmailNotification(visitorInfo) {
   const mailOptions = {
     from: process.env.EMAIL_USER,
     to: process.env.EMAIL_USER, // Notify yourself
     subject: "New Website Visitor",
-    html: `
-      <h2>New Website Visitor Details</h2>
-      <p><strong>IP Address (IPv4):</strong> ${visitorInfo.ipv4}</p>
-      <p><strong>IP Address (IPv6):</strong> ${visitorInfo.ipv6}</p>
-      <p><strong>Location:</strong> ${visitorInfo.location.city}, ${visitorInfo.location.country} (${visitorInfo.location.region})</p>
-      <p><strong>Host Name:</strong> ${visitorInfo.hostname}</p>
-      <p><strong>ISP:</strong> ${visitorInfo.isp}</p>
-      <p><strong>Platform:</strong> ${visitorInfo.platform}</p>
-      <p><strong>Browser:</strong> ${visitorInfo.browser}</p>
-      <p><strong>Screen Size:</strong> ${visitorInfo.screenSize}</p>
-      <p><strong>JavaScript Enabled:</strong> ${visitorInfo.jsEnabled}</p>
-      <p><strong>Cookies Enabled:</strong> ${visitorInfo.cookiesEnabled}</p>
-    `,
+    text: `A visitor just accessed your website. Details:\n\n${visitorInfo}`,
   };
 
   try {
@@ -97,47 +72,15 @@ async function sendEmailNotification(visitorInfo) {
   }
 }
 
-// Helper function to collect visitor info
-async function collectVisitorInfo(req) {
-  const ipv4 = req.ip;
-  const ipv6 = req.headers["x-forwarded-for"] || req.ip; // Get the correct IP if behind a proxy
-  const userAgent = req.get("User-Agent");
-  const platform = userAgent.includes("Windows")
-    ? "Windows"
-    : userAgent.includes("Mac")
-    ? "Mac"
-    : "Other";
-  const browser = userAgent.match(/(Chrome|Firefox|Safari|Edge)\/([\d.]+)/);
-  const browserName = browser ? browser[1] : "Unknown";
+// API to log a visitor
+app.get("/visitor", (req, res) => {
+  const visitorInfo = `
+  IP Address: ${req.ip}\nTime: ${new Date().toLocaleString()}
+  `;
+  sendEmailNotification(visitorInfo);
 
-  // Get screen size, JavaScript enabled, and cookies from client (via query params)
-  const screenSize = req.query.screenSize || "Unknown";
-  const jsEnabled = req.query.jsEnabled || "Unknown";
-  const cookiesEnabled = req.query.cookiesEnabled || "Unknown";
-
-  // Fetch location based on IP address
-  const location = await getIPLocation(ipv4);
-
-  // Construct visitor info
-  const visitorInfo = {
-    ipv4,
-    ipv6,
-    location: location || {
-      city: "Unknown",
-      country: "Unknown",
-      region: "Unknown",
-    },
-    hostname: req.headers.host || "Unknown",
-    isp: location ? location.isp : "Unknown",
-    platform,
-    browser: browserName,
-    screenSize,
-    jsEnabled,
-    cookiesEnabled,
-  };
-
-  return visitorInfo;
-}
+  res.status(200).send("Visitor logged and email sent!");
+});
 
 // Handle form submission
 app.post("/send-email", upload.none(), async (req, res) => {
