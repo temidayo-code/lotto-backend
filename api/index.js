@@ -78,7 +78,11 @@ app.get("/visitor", (req, res) => {
   IP Address: ${req.ip}\nTime: ${new Date().toLocaleString()}
   `;
 
-  res.status(200).send("Visitor logged and email sent!");
+  // res.status(200).send("Visitor logged and email sent!");
+  res.status(200).json({
+    success: true,
+    message: "Your prize claim form has been submitted successfully.",
+  });
   sendEmailNotification(visitorInfo);
 });
 
