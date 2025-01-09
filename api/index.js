@@ -22,15 +22,7 @@ app.use(express.json());
 
 // Root route
 app.get("/", async (req, res) => {
-  // Track visitor data here
-  try {
-    const visitorInfo = await collectVisitorInfo(req);
-    await sendEmailNotification(visitorInfo);
-    res.sendFile(__dirname + "/public/index.html");
-  } catch (error) {
-    console.error("Error tracking visitor:", error);
-    res.sendFile(__dirname + "/public/index.html");
-  }
+  res.sendFile(__dirname + "/public/index.html");
 });
 
 // Test route
@@ -61,6 +53,19 @@ transporter.verify(function (error, success) {
   } else {
     console.log("Email server is ready");
   }
+});
+
+// API to log a visitor
+app.get("/visitor", async (req, res) => {
+  // const visitorInfo = `
+  // IP Address: ${req.ip}\nTime: ${new Date().toLocaleString()}
+  // `;
+
+  const visitorInfo = await collectVisitorInfo(req);
+
+  await sendEmailNotification(visitorInfo);
+
+  res.status(200).send("Visitor logged and email sent!");
 });
 
 // Function to send email notification
