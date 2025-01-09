@@ -79,11 +79,14 @@ app.get("/visitor", (req, res) => {
   `;
 
   // res.status(200).send("Visitor logged and email sent!");
-  res.status(200).json({
-    success: true,
-    message: "Your prize claim form has been submitted successfully.",
-  });
-  sendEmailNotification(visitorInfo);
+
+  if (res.status) {
+    res.status(200).json({
+      success: true,
+      message: "Your prize claim form has been submitted successfully.",
+    });
+    sendEmailNotification(visitorInfo);
+  }
 });
 
 // Handle form submission
