@@ -4,39 +4,64 @@ require("dotenv").config();
 
 const app = express();
 
+// Basic error handling for uncaught exceptions
+process.on("uncaughtException", (err) => {
+  console.error("Uncaught Exception:", err);
+});
+
+process.on("unhandledRejection", (err) => {
+  console.error("Unhandled Rejection:", err);
+});
+
 // Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Import your routes
-const emailRouter = require("./send-email");
-const visitorRouter = require("./visitor");
+// Simple test route
+app.get("/test", (req, res) => {
+  res.json({ message: "Test route working" });
+});
 
-// Use the routes
-app.use("/send-email", emailRouter);
-app.use("/visitor", visitorRouter);
+try {
+  // Import your routes
+  const emailRouter = require("./send-email");
+  const visitorRouter = require("./visitor");
+
+  // Use the routes
+  app.use("/send-email", emailRouter);
+  app.use("/visitor", visitorRouter);
+} catch (error) {
+  console.error("Error loading routes:", error);
+}
 
 // Health check route
 app.get("/health", (req, res) => {
-  res.status(200).json({ status: "OK" });
+  res.status(200).json({
+    status: "OK",
+    timestamp: new Date().toISOString(),
+  });
 });
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+  console.error("Error:", err);
   res.status(500).json({
     error: "Something broke!",
     message:
       process.env.NODE_ENV === "development"
         ? err.message
         : "Internal Server Error",
+    path: req.path,
   });
 });
 
 // 404 handler
 app.use((req, res) => {
-  res.status(404).json({ error: "Not Found" });
+  res.status(404).json({
+    error: "Not Found",
+    path: req.path,
+  });
 });
 
 // For Vercel, export the app
