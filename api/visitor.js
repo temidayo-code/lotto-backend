@@ -2,13 +2,28 @@ const express = require("express");
 const router = express.Router();
 const cors = require("cors");
 const nodemailer = require("nodemailer");
+const axios = require("axios");
 require("dotenv").config();
 
 router.use(
   cors({
     origin: "https://lotto-orpin.vercel.app",
+    methods: ["GET", "POST"],
   })
 );
+
+// New endpoint to fetch IP info
+router.get("/get-ip-info", async (req, res) => {
+  try {
+    const response = await axios.get(
+      `https://ipinfo.io/json?token=${process.env.IPINFO_TOKEN}`
+    );
+    res.json(response.data);
+  } catch (error) {
+    console.error("Error fetching IP info:", error);
+    res.status(500).json({ error: "Failed to fetch IP information" });
+  }
+});
 
 // Email transporter setup
 const transporter = nodemailer.createTransport({
@@ -24,7 +39,7 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// Function to send email notification
+// Improved email notification function with better error handling
 async function sendEmailNotification(visitorInfo) {
   const mailOptions = {
     from: process.env.EMAIL_USER,
@@ -34,58 +49,69 @@ async function sendEmailNotification(visitorInfo) {
   };
 
   try {
-    console.log("Sending email to:", mailOptions.to);
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+      throw new Error("Email configuration is missing");
+    }
     await transporter.sendMail(mailOptions);
-    console.log("Email sent successfully!");
+    return true;
   } catch (error) {
     console.error("Error sending email:", error);
+    throw error; // Propagate error for handling in route
   }
 }
 
-// Handler for visitor logging (POST request)
-router.post("/", (req, res) => {
-  // Extract visitor information from the request body
-  const {
-    ipAddress,
-    ipLocation,
-    isp,
-    platform,
-    browser,
-    screenWidth,
-    screenHeight,
-    javascriptEnabled,
-    cookiesEnabled,
-  } = req.body;
+// Improved visitor logging handler
+router.post("/", async (req, res) => {
+  try {
+    const {
+      ipAddress,
+      ipLocation,
+      isp,
+      platform,
+      browser,
+      screenWidth,
+      screenHeight,
+      javascriptEnabled,
+      cookiesEnabled,
+    } = req.body;
 
-  // Create the visitor info text for the email
-  const visitorInfo = `
-    IP Address: ${ipAddress}\n
-    Location: ${ipLocation}\n
-    ISP: ${isp}\n
-    Platform: ${platform}\n
-    Browser: ${browser}\n
-    Screen Size: ${screenWidth}x${screenHeight}\n
+    // Validate required fields
+    if (!ipAddress || !browser) {
+      return res
+        .status(400)
+        .json({ error: "Missing required visitor information" });
+    }
+
+    const visitorInfo = `
+    IP Address: ${ipAddress || "N/A"}\n
+    Location: ${ipLocation || "N/A"}\n
+    ISP: ${isp || "N/A"}\n
+    Platform: ${platform || "N/A"}\n
+    Browser: ${browser || "N/A"}\n
+    Screen Size: ${screenWidth || 0}x${screenHeight || 0}\n
     JavaScript Enabled: ${javascriptEnabled}\n
     Cookies Enabled: ${cookiesEnabled}\n
     Time: ${new Date().toLocaleString()}
   `;
 
-  // Immediately respond to the client
-  res.status(200).send("Visitor logged and email sent!");
+    // Log visitor info
+    console.log("Visitor info:", visitorInfo);
 
-  // Log visitor info
-  console.log("Visitor info:", visitorInfo);
+    // Send email notification asynchronously
+    setImmediate(async () => {
+      try {
+        await sendEmailNotification(visitorInfo);
+        console.log("Email sent successfully!");
+      } catch (error) {
+        console.error("Failed to send email notification:", error);
+      }
+    });
 
-  // Send email notification in a separate process
-  setImmediate(async () => {
-    try {
-      console.log("Sending email for visitor info...");
-      await sendEmailNotification(visitorInfo);
-      console.log("Email sent successfully!");
-    } catch (error) {
-      console.error("Error sending email:", error);
-    }
-  });
+    res.status(200).json({ message: "Visitor logged successfully" });
+  } catch (error) {
+    console.error("Error processing visitor:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 module.exports = router;
