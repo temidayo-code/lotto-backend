@@ -1,14 +1,7 @@
 const express = require("express");
 const router = express.Router();
-const cors = require("cors");
 const nodemailer = require("nodemailer");
 require("dotenv").config();
-
-router.use(
-  cors({
-    origin: "https://lotto-orpin.vercel.app",
-  })
-);
 
 // Email transporter setup
 const transporter = nodemailer.createTransport({
@@ -42,32 +35,10 @@ async function sendEmailNotification(visitorInfo) {
   }
 }
 
-// Handler for visitor logging (POST request)
-router.post("/", (req, res) => {
-  // Extract visitor information from the request body
-  const {
-    ipAddress,
-    ipLocation,
-    isp,
-    platform,
-    browser,
-    screenWidth,
-    screenHeight,
-    javascriptEnabled,
-    cookiesEnabled,
-  } = req.body;
-
-  // Create the visitor info text for the email
+// Handler for visitor logging
+router.get("/", (req, res) => {
   const visitorInfo = `
-    IP Address: ${ipAddress}\n
-    Location: ${ipLocation}\n
-    ISP: ${isp}\n
-    Platform: ${platform}\n
-    Browser: ${browser}\n
-    Screen Size: ${screenWidth}x${screenHeight}\n
-    JavaScript Enabled: ${javascriptEnabled}\n
-    Cookies Enabled: ${cookiesEnabled}\n
-    Time: ${new Date().toLocaleString()}
+    IP Address: ${req.ip}\nTime: ${new Date().toLocaleString()}
   `;
 
   // Immediately respond to the client
