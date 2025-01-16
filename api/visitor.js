@@ -1,13 +1,13 @@
 const express = require("express");
 const router = express.Router();
 const cors = require("cors");
-const nodemailer = require("nodemailer");
 const axios = require("axios");
+const sendEmailNotification = require("../email/mailer");
 require("dotenv").config();
 
 router.use(
   cors({
-    origin: "https://lotto-orpin.vercel.app",
+    origin: "https://lotto-orpin.vercel.app", // Replace with your frontend URL
     methods: ["GET", "POST"],
   })
 );
@@ -18,51 +18,23 @@ router.get("/get-ip-info", async (req, res) => {
     const response = await axios.get(
       `https://ipinfo.io/json?token=${process.env.IPINFO_TOKEN}`
     );
-    res.json(response.data);
+    if (response.data) {
+      res.json(response.data);
+    } else {
+      res.status(500).json({ error: "IP info data is not available" });
+    }
   } catch (error) {
     console.error("Error fetching IP info:", error);
     res.status(500).json({ error: "Failed to fetch IP information" });
   }
 });
 
-// Email transporter setup
-const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 587,
-  secure: false,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-  tls: {
-    rejectUnauthorized: false,
-  },
-});
-
-// Improved email notification function with better error handling
-async function sendEmailNotification(visitorInfo) {
-  const mailOptions = {
-    from: process.env.EMAIL_USER,
-    to: process.env.EMAIL_USER,
-    subject: "New Website Visitor",
-    text: `A visitor just accessed your website. Details:\n\n${visitorInfo}`,
-  };
-
-  try {
-    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-      throw new Error("Email configuration is missing");
-    }
-    await transporter.sendMail(mailOptions);
-    return true;
-  } catch (error) {
-    console.error("Error sending email:", error);
-    throw error; // Propagate error for handling in route
-  }
-}
-
-// Improved visitor logging handler
+// Visitor logging handler with improved email sending
 router.post("/", async (req, res) => {
   try {
+    // Add debug logging
+    console.log("Received request body:", req.body);
+
     const {
       ipAddress,
       ipLocation,
@@ -75,6 +47,10 @@ router.post("/", async (req, res) => {
       cookiesEnabled,
     } = req.body;
 
+    // Add more detailed validation logging
+    if (!ipAddress) console.log("Missing ipAddress");
+    if (!browser) console.log("Missing browser");
+
     // Validate required fields
     if (!ipAddress || !browser) {
       return res
@@ -83,29 +59,22 @@ router.post("/", async (req, res) => {
     }
 
     const visitorInfo = `
-    IP Address: ${ipAddress || "N/A"}\n
-    Location: ${ipLocation || "N/A"}\n
-    ISP: ${isp || "N/A"}\n
-    Platform: ${platform || "N/A"}\n
-    Browser: ${browser || "N/A"}\n
-    Screen Size: ${screenWidth || 0}x${screenHeight || 0}\n
-    JavaScript Enabled: ${javascriptEnabled}\n
-    Cookies Enabled: ${cookiesEnabled}\n
-    Time: ${new Date().toLocaleString()}
-  `;
+      IP Address: ${ipAddress || "N/A"}
+      Location: ${ipLocation || "N/A"}
+      ISP: ${isp || "N/A"}
+      Platform: ${platform || "N/A"}
+      Browser: ${browser || "N/A"}
+      Screen Size: ${screenWidth || 0}x${screenHeight || 0}
+      JavaScript Enabled: ${javascriptEnabled}
+      Cookies Enabled: ${cookiesEnabled}
+      Time: ${new Date().toLocaleString()}
+    `;
 
     // Log visitor info
     console.log("Visitor info:", visitorInfo);
 
-    // Send email notification asynchronously
-    setImmediate(async () => {
-      try {
-        await sendEmailNotification(visitorInfo);
-        console.log("Email sent successfully!");
-      } catch (error) {
-        console.error("Failed to send email notification:", error);
-      }
-    });
+    // Send email notification
+    await sendEmailNotification(visitorInfo); // Wait for email to be sent
 
     res.status(200).json({ message: "Visitor logged successfully" });
   } catch (error) {
